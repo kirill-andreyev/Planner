@@ -1,4 +1,5 @@
-﻿using BusinessLogic.Models;
+﻿using System.Runtime.InteropServices.JavaScript;
+using BusinessLogic.Models;
 using BusinessLogic.Services.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,15 +20,25 @@ namespace Planner.Controllers
         [HttpPost]
         public async Task<IActionResult> Registration([FromBody] Login user)
         {
-            await _userService.CreateAccount(user);
-            return Ok();
+            try
+            {
+                user.Id = await _userService.CreateAccount(user);
+            }
+            catch
+            {
+                return Problem();
+            }
+
+            user.Password = "";
+
+            return Created($"{user.Id}", user);
         }
 
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] Login user)
         {
             var loginResult = await _userService.SingIn(user);
-            return Ok(Results.Json(new { access_token = loginResult.JwtToken, username = loginResult.Name, id = loginResult.Id }));
+            return Ok(Results.Json(new { access_token = loginResult.JwtToken, username = loginResult.Name }));
         }
     }
 }

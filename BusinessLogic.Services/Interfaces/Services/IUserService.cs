@@ -10,6 +10,6 @@ namespace BusinessLogic.Services.Interfaces.Services
     public interface IUserService
     {
         public Task<LoginResult> SingIn(Login user);
-        public Task CreateAccount (Login user);
+        public Task<int> CreateAccount (Login user);
     }
 }
