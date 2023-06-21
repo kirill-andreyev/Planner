@@ -22,54 +22,70 @@ namespace Planner.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllEvents()
         {
-            return Ok(await _eventService.GetEventList());
+            try
+            {
+                return Ok(await _eventService.GetEventList());
+            }
+            catch 
+            {
+                return NotFound();
+            }
         }
 
         [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetEvent(int id)
         {
-            return Ok(await _eventService.GetEvent(id));
+            try
+            {
+                return Ok(await _eventService.GetEvent(id));
+            }
+            catch
+            {
+                return NotFound();
+            }
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateEvent(string name, string promoter, string description, string speaker,
-            string place, DateTime date)
+        public async Task<IActionResult> CreateEvent(EventPL Event)
         {
-            var Event = new EventPL
+            try
             {
-                Date = date,
-                Description = description,
-                Name = name,
-                Place = place,
-                Promoter = promoter,
-                Speaker = speaker
-            };
-            return Ok(await _eventService.CreateEvent(Event));
+                Event.Id = await _eventService.CreateEvent(Event);
+            }
+            catch 
+            {
+                return Problem();
+            }
+            return Created($"{Event.Id}", Event);
         }
 
         [HttpPut]
-        public async Task<IActionResult> UpdateEvent(int id, string name, string promoter, string description,
-            string speaker, string place, DateTime date)
+        public async Task<IActionResult> UpdateEvent(EventPL Event)
         {
-            var Event = new EventPL
+            try
             {
-                Date = date,
-                Description = description,
-                Name = name,
-                Place = place,
-                Promoter = promoter,
-                Speaker = speaker,
-                Id = id
-            };
+                Event.Id = await _eventService.UpdateEvent(Event);
+            }
+            catch
+            {
+                return Problem();
+            }
 
-            return Ok(await _eventService.UpdateEvent(Event));
+            return Created($"{Event.Id}", Event);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
-            await _eventService.DeleteEvent(id);
+            try
+            {
+                await _eventService.DeleteEvent(id);
+            }
+            catch
+            {
+                return Problem();
+            }
             return Ok();
         }
     }

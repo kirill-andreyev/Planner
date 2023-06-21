@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 using Azure.Identity;
 using BusinessLogic.Models;
 using BusinessLogic.Services.Interfaces.Services;
 using Constants;
 using DataAccess.Models;
-using DataAccess.Repository;
-using Microsoft.EntityFrameworkCore;
+using DataAccess.Repository.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -21,20 +15,25 @@ namespace BusinessLogic.Services.Implementations.Services
 {
     public class UserService : IUserService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IUserRepository _repository;
         private readonly JwtOptions _jwtOptions;
 
-        public UserService(ApplicationDbContext context, IOptions<JwtOptions> jwtOptions)
+        public UserService(IUserRepository repository, IOptions<JwtOptions> jwtOptions)
         {
-            _context = context;
+            _repository = repository;
             _jwtOptions = jwtOptions.Value;
         }
         public async Task<LoginResult> SingIn(Login user)
         {
-            var dbUser = await _context.Users.FirstOrDefaultAsync(a => a.Name == user.Name);
-            user.Password = PasswordEncryptor.GenerateSHA256(user.Password);
+            var dbUser = new User() { Name = user.Name, Password = PasswordEncryptor.GenerateSHA256(user.Password) };
 
-            if (dbUser == null || dbUser.Password != user.Password)
+
+            if (!await _repository.CheckIfUserExist(dbUser.Name))
+            {
+                throw new AuthenticationException("Wrong username or password");
+            }
+
+            if (!await _repository.CheckUserPassword(dbUser))
             {
                 throw new AuthenticationException("Wrong username or password");
             }
@@ -54,24 +53,23 @@ namespace BusinessLogic.Services.Implementations.Services
 
             return new LoginResult
             {
-                Id = dbUser.Id, 
                 Name = dbUser.Name,
                 JwtToken = new JwtSecurityTokenHandler().WriteToken(jwt)
             };
         }
 
-        public async Task CreateAccount(Login user)
+        public async Task<int> CreateAccount(Login user)
         {
-            var dbUser = await _context.Users.FirstOrDefaultAsync(a => a.Name == user.Name);
-            if (dbUser != null)
+            var dbUser = new User() { Name = user.Name, Password = PasswordEncryptor.GenerateSHA256(user.Password) };
+            if (await _repository.CheckIfUserExist(user.Name))
             {
-                throw new AuthenticationFailedException("User already exist");
+                throw new AuthenticationException("User already exist");
             }
 
-            dbUser = new User
-                { Name = user.Name, Password = PasswordEncryptor.GenerateSHA256(user.Password)};
-            await _context.AddAsync(dbUser);
-            await _context.SaveChangesAsync();
+            var id = await _repository.AddUser(dbUser);
+            await _repository.Save();
+
+            return id;
         }
     }
 }
