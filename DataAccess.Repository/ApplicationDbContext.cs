@@ -1,5 +1,6 @@
 ﻿using Constants;
 using DataAccess.Models;
+using DataAccess.Repository.ModelsConfiguration;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataAccess.Repository
@@ -16,13 +17,7 @@ namespace DataAccess.Repository
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<User>().HasData(new User
-            {
-                Id = 1,
-                Name = "admin",
-                Password = PasswordEncryptor.GenerateSHA256("root"),
-            });
+            modelBuilder.ApplyConfiguration(new UserConfiguration());
         }
     }
 }
